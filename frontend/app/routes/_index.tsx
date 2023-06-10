@@ -1,7 +1,15 @@
 import type { V2_MetaFunction } from "@remix-run/node";
 import ShoppingCart from "~/components/cart";
 import { Header } from "~/components/header";
-import { ProductList, products } from "~/components/product-list";
+import { Product, ProductList, } from "~/components/product-list";
+import { useLoaderData } from "@remix-run/react";
+
+export const loader = async (): Promise<Product[]> => {
+  const backendUrl =process.env.BACKEND_URL as string;
+  const data = await fetch(`${backendUrl}/v1/products`);
+  const result = await data.json();
+  return result;
+}
 
 export const meta: V2_MetaFunction = () => {
   return [
@@ -11,6 +19,7 @@ export const meta: V2_MetaFunction = () => {
 };
 
 export default function Index() {
+  const products = useLoaderData<typeof loader>();
   return (
     <>
       <Header />
