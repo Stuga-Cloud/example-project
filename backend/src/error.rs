@@ -24,6 +24,9 @@ pub enum Error {
 
     #[error("{0}")]
     RepoError(#[from] RepoError),
+
+    #[error("{0}")]
+    DatabaseError(#[from] sqlx::Error),
 }
 
 impl Error {
@@ -47,6 +50,7 @@ impl Error {
             }
             Error::RunSyncTask(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
             Error::RepoError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
+            Error::DatabaseError(_) => todo!(),
         }
     }
 

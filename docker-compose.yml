@@ -1,8 +1,11 @@
 version: '3'
+
 services:
   db:
     image: postgres
     restart: always
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -17,10 +20,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: always
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db/${DB_NAME}
     depends_on:
       - db
+    ports:
+      - 8008:8008
 
   frontend:
     build:
