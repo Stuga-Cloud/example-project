@@ -1,20 +1,31 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useAtom, useAtomValue } from 'jotai'
 import { cartProductAtom, productAtom } from '~/routes/_index'
+import { useSubmit } from '@remix-run/react'
 
 export default function ShoppingCart() {
   const [open, setOpen] = useState(false)
   const [cartProductsId, setCartProductsId] = useAtom(cartProductAtom);
   const products = useAtomValue(productAtom);
+  const formRef = useRef<HTMLFormElement>();
+  const submit = useSubmit();
   const cartProducts = products.filter(p => cartProductsId.some(id => p.id === id));
+
   const totalPrice = cartProducts.reduce(
     (acc, current) => acc + current.price
-  , 0);
-  // .toFixed(2);
+  , 0).toFixed(2);
+
   const remove = (productId: number) => {
     setCartProductsId(cartProductsId.filter(id => id !== productId));
+  }
+
+  const checkout = () => {
+    const formData = new FormData(formRef.current);
+    const data = JSON.stringify(cartProducts);
+    formData.set("cart", data);
+    submit(formData, {method: 'post' });
   }
 
   return (
@@ -112,19 +123,19 @@ export default function ShoppingCart() {
                         </div>
                       </div>
 
-                      <div className="border-t border-gray-200 px-4 py-6 sm:px-6">
+                      <form  onSubmit={checkout} className="border-t border-gray-200 px-4 py-6 sm:px-6">
                         <div className="flex justify-between text-base font-medium text-gray-900">
                           <p>Subtotal</p>
                           <p>{totalPrice}</p>
                         </div>
                         <p className="mt-0.5 text-sm text-gray-500">Shipping and taxes calculated at checkout.</p>
                         <div className="mt-6">
-                          <a
-                            href="#"
+                          <button
+                            type='submit'
                             className="flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700"
                           >
                             Checkout
-                          </a>
+                          </button>
                         </div>
                         <div className="mt-6 flex justify-center text-center text-sm text-gray-500">
                           <p>
@@ -139,7 +150,7 @@ export default function ShoppingCart() {
                             </button>
                           </p>
                         </div>
-                      </div>
+                      </form>
                     </div>
                   </Dialog.Panel>
                 </Transition.Child>
