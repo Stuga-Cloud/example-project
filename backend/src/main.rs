@@ -8,6 +8,7 @@ mod error;
 mod logger;
 mod routes;
 mod settings;
+mod utils;
 
 #[tokio::main]
 async fn main() {

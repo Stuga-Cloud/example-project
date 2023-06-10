@@ -8,10 +8,11 @@ export default function ShoppingCart() {
   const [open, setOpen] = useState(false)
   const [cartProductsId, setCartProductsId] = useAtom(cartProductAtom);
   const products = useAtomValue(productAtom);
-  const cartProducts = products.filter(p => cartProductsId.some(id => p.id == id));
+  const cartProducts = products.filter(p => cartProductsId.some(id => p.id === id));
   const totalPrice = cartProducts.reduce(
     (acc, current) => acc + current.price
-  , 0).toFixed(2);
+  , 0);
+  // .toFixed(2);
   const remove = (productId: number) => {
     setCartProductsId(cartProductsId.filter(id => id !== productId));
   }

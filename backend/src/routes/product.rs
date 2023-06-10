@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{self, types::BigDecimal, PgPool};
 use tracing::debug;
 
-use crate::error::Error;
+use crate::{error::Error, utils::serialize_bigdecimal};
 
 pub fn create_route() -> Router {
     Router::new().route("/products", get(get_products))
@@ -46,6 +46,7 @@ pub struct Product {
     id: i32,
     name: String,
     href: String,
+    #[serde(serialize_with = "serialize_bigdecimal")]
     price: BigDecimal,
     description: String,
     #[serde(rename = "imageSrc")]

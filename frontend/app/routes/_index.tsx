@@ -9,6 +9,7 @@ export const loader = async (): Promise<Product[]> => {
   const backendUrl =process.env.BACKEND_URL as string;
   const data = await fetch(`${backendUrl}/v1/products`);
   const result = await data.json();
+  console.info("data", result);
   return result;
 }
 
