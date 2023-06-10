@@ -1,9 +1,10 @@
 import type { V2_MetaFunction } from "@remix-run/node";
 import ShoppingCart from "~/components/cart";
 import { Header } from "~/components/header";
-import { Product, ProductList, } from "~/components/product-list";
+import { ProductList } from "~/components/product-list";
 import { useLoaderData } from "@remix-run/react";
-
+import { Provider, atom, useSetAtom } from 'jotai';
+import { atomWithStorage } from 'jotai/utils';
 export const loader = async (): Promise<Product[]> => {
   const backendUrl =process.env.BACKEND_URL as string;
   const data = await fetch(`${backendUrl}/v1/products`);
@@ -18,14 +19,37 @@ export const meta: V2_MetaFunction = () => {
   ];
 };
 
+
+export type Product = {
+  id: number,
+  name: string,
+  href: string,
+  price: number,
+  description: string,
+  imageSrc: string,
+  imageAlt: string,
+}
+
+export const productAtom = atom<Product[]>([]);
+export const cartProductAtom = atomWithStorage<number[]>('cart', []);
+
 export default function Index() {
-  const products = useLoaderData<typeof loader>();
+  return (
+    <Provider>
+      <Page />
+    </Provider>
+  );
+}
+
+function Page() {
+  const loadedProducts = useLoaderData<typeof loader>();
+  const setProducts = useSetAtom(productAtom);
+  setProducts(loadedProducts);
   return (
     <>
       <Header />
-      <ProductList products={products} />
+      <ProductList />
       <ShoppingCart />
     </>
   );
 }
-

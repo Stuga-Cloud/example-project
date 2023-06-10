@@ -1,51 +1,26 @@
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
-
-export type CartProduct = {
-  id: number,
-  name: string,
-  href: string,
-  price: string,
-  description: string,
-  color: string,
-  quantity: number,
-  imageSrc: string,
-  imageAlt: string,
-}
-
-const cartProducts = [
-  {
-    id: 1,
-    name: 'Throwback Hip Bag',
-    href: '#',
-    color: 'Salmon',
-    price: '$90.00',
-    quantity: 1,
-    imageSrc: 'https://tailwindui.com/img/ecommerce-images/shopping-cart-page-04-product-01.jpg',
-    imageAlt: 'Salmon orange fabric pouch with match zipper, gray zipper pull, and adjustable hip belt.',
-  },
-  {
-    id: 2,
-    name: 'Medium Stuff Satchel',
-    href: '#',
-    color: 'Blue',
-    price: '$32.00',
-    quantity: 1,
-    imageSrc: 'https://tailwindui.com/img/ecommerce-images/shopping-cart-page-04-product-02.jpg',
-    imageAlt:
-      'Front of satchel with blue canvas body, black straps and handle, drawstring top, and front zipper pouch.',
-  },
-]
+import { useAtom, useAtomValue } from 'jotai'
+import { cartProductAtom, productAtom } from '~/routes/_index'
 
 export default function ShoppingCart() {
   const [open, setOpen] = useState(false)
+  const [cartProductsId, setCartProductsId] = useAtom(cartProductAtom);
+  const products = useAtomValue(productAtom);
+  const cartProducts = products.filter(p => cartProductsId.some(id => p.id == id));
+  const totalPrice = cartProducts.reduce(
+    (acc, current) => acc + current.price
+  , 0).toFixed(2);
+  const remove = (productId: number) => {
+    setCartProductsId(cartProductsId.filter(id => id !== productId));
+  }
 
   return (
     <>
-     <div className='flex justify-center mb-10'>
+      <div className='flex justify-center mb-10'>
         <button
-          className="flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700"
+          className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           onClick={() => setOpen(true)}
         >show cart</button>
       </div>
@@ -113,15 +88,16 @@ export default function ShoppingCart() {
                                         </h3>
                                         <p className="ml-4">{product.price}</p>
                                       </div>
-                                      <p className="mt-1 text-sm text-gray-500">{product.color}</p>
+                                      <p className="mt-1 text-sm text-gray-500">Yellow</p>
                                     </div>
                                     <div className="flex flex-1 items-end justify-between text-sm">
-                                      <p className="text-gray-500">Qty {product.quantity}</p>
+                                      <p className="text-gray-500">Qty 1</p>
 
                                       <div className="flex">
                                         <button
                                           type="button"
                                           className="font-medium text-indigo-600 hover:text-indigo-500"
+                                          onClick={() => remove(product.id)}
                                         >
                                           Remove
                                         </button>
@@ -138,7 +114,7 @@ export default function ShoppingCart() {
                       <div className="border-t border-gray-200 px-4 py-6 sm:px-6">
                         <div className="flex justify-between text-base font-medium text-gray-900">
                           <p>Subtotal</p>
-                          <p>$262.00</p>
+                          <p>{totalPrice}</p>
                         </div>
                         <p className="mt-0.5 text-sm text-gray-500">Shipping and taxes calculated at checkout.</p>
                         <div className="mt-6">
