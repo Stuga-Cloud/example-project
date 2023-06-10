@@ -14,7 +14,7 @@ export const products: Product[] = [
     href: '#',
     price: '$13',
     description: '3 sizes available',
-    imageSrc: 'https://tailwindui.com/img/ecommerce-images/category-page-01-image-card-01.jpg',
+    imageSrc: 'medecin_3.png',
     imageAlt: 'Person using a pen to cross a task off a productivity paper card.',
   },
   {
@@ -23,7 +23,7 @@ export const products: Product[] = [
     href: '#',
     price: '$64',
     description: 'Walnut',
-    imageSrc: 'https://tailwindui.com/img/ecommerce-images/category-page-01-image-card-02.jpg',
+    imageSrc: 'medecin_1.png',
     imageAlt: 'Paper card sitting upright in walnut card holder on desk.',
   },
   {
@@ -32,7 +32,7 @@ export const products: Product[] = [
     href: '#',
     price: '$32',
     description: 'Heather Gray',
-    imageSrc: 'https://tailwindui.com/img/ecommerce-images/category-page-01-image-card-03.jpg',
+    imageSrc: 'medecin_2.png',
     imageAlt: 'Textured gray felt pouch for paper cards with snap button flap and elastic pen holder loop.',
   },
 ]
