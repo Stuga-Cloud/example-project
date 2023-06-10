@@ -1,4 +1,4 @@
-FROM node:19-alpine
+FROM node:18
 WORKDIR /usr/server/app
 
 COPY ./package.json ./
@@ -6,4 +6,6 @@ RUN npm install
 COPY ./ .
 RUN npm run build
 ENV NODE_ENV=production
-CMD ["npm", “run” ,"start"]
+
+EXPOSE 3000
+ENTRYPOINT npm run start
