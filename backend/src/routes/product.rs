@@ -1,6 +1,6 @@
 use axum::{routing::get, Json, Router};
 use serde::{Deserialize, Serialize};
-use sqlx::{self, PgPool};
+use sqlx::{self, types::BigDecimal, PgPool};
 use tracing::debug;
 
 use crate::error::Error;
@@ -9,10 +9,11 @@ pub fn create_route() -> Router {
     Router::new().route("/products", get(get_products))
 }
 
+const DATABASE_URL: &str = "postgresql://myuser:mypassword@localhost/mydatabase";
+
 async fn get_products() -> Result<Json<Vec<Product>>, Error> {
     debug!("Sending product");
-    const database_url: &str = "postgresql://myuser:mypassword@localhost/mydatabase";
-    let pool = PgPool::connect(&database_url).await?;
+    let pool = PgPool::connect(&DATABASE_URL).await?;
 
     let rows = sqlx::query!(
         r#"
@@ -42,10 +43,10 @@ async fn get_products() -> Result<Json<Vec<Product>>, Error> {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Product {
-    id: u32,
+    id: i32,
     name: String,
     href: String,
-    price: f32,
+    price: BigDecimal,
     description: String,
     #[serde(rename = "imageSrc")]
     image_src: String,
