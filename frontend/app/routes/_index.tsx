@@ -5,8 +5,8 @@ import { ProductList, products } from "~/components/product-list";
 
 export const meta: V2_MetaFunction = () => {
   return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
+    { title: "Example project" },
+    { name: "description", content: "description of example project" },
   ];
 };
 

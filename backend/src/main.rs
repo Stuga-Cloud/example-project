@@ -1,34 +1,13 @@
-use lazy_static::lazy_static;
-use serde::Deserialize;
 use std::net::SocketAddr;
 use tracing::info;
+
+use crate::settings::SETTINGS;
 
 mod app;
 mod error;
 mod logger;
 mod routes;
 mod settings;
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct Settings {
-    pub environment: String,
-    pub log_level: String,
-    pub server_port: u16,
-}
-
-impl Settings {
-    fn new() -> Self {
-        Self {
-            environment: "dev".to_string(),
-            log_level: "debug".to_string(),
-            server_port: 8008,
-        }
-    }
-}
-
-lazy_static! {
-    pub static ref SETTINGS: Settings = Settings::new();
-}
 
 #[tokio::main]
 async fn main() {
