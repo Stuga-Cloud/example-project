@@ -7,7 +7,7 @@ use tokio::task::JoinError;
 #[derive(thiserror::Error, Debug)]
 #[error("...")]
 pub enum Error {
-    #[error("Error parsing ObjectID {0}")]
+    #[error("{0}")]
     ParseUuid(String),
 
     #[error("{0}")]
@@ -50,7 +50,7 @@ impl Error {
             }
             Error::RunSyncTask(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
             Error::RepoError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
-            Error::DatabaseError(_) => todo!(),
+            Error::DatabaseError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
         }
     }
 

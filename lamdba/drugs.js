@@ -7,7 +7,7 @@ const drugInteractions = {
     "Multivitamin": []
 };
 
-exports.handler = async (event) => {
+const handler = async (event) => {
     const medications = event.medications || [];
     
     const interactions = [];
@@ -39,3 +39,5 @@ exports.handler = async (event) => {
         };
     }
 };
+
+export { handler };

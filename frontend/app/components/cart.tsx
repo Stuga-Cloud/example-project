@@ -23,7 +23,7 @@ export default function ShoppingCart() {
 
   const checkout = () => {
     const formData = new FormData(formRef.current);
-    const data = JSON.stringify(cartProducts);
+    const data = JSON.stringify(cartProductsId);
     formData.set("cart", data);
     submit(formData, {method: 'post' });
   }

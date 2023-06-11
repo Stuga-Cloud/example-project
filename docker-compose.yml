@@ -24,6 +24,7 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db/${DB_NAME}
+      LAMBDA_ENDPOINT: ${LAMBDA_ENDPOINT}
     depends_on:
       - db
     ports:

@@ -6,14 +6,6 @@ import { useLoaderData } from "@remix-run/react";
 import { Provider, atom, useSetAtom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 
-export const loader = async (): Promise<Product[]> => {
-  const backendUrl = process.env.BACKEND_URL as string;
-  const data = await fetch(`${backendUrl}/v1/products`);
-  const result = await data.json();
-  console.info("data", result);
-  return result;
-}
-
 export const meta: V2_MetaFunction = () => {
   return [
     { title: "Example project" },
@@ -21,9 +13,26 @@ export const meta: V2_MetaFunction = () => {
   ];
 };
 
+export const loader = async (): Promise<Product[]> => {
+  const backendUrl = process.env.BACKEND_URL as string;
+  const data = await fetch(`${backendUrl}/v1/products`);
+  const result = await data.json();
+  return result;
+}
+
 export async function action({request}: ActionArgs) {
+  const backendUrl = process.env.BACKEND_URL as string;
   const body = await request.formData();
-  console.log(body);
+  const cartItems = body.get('cart');
+  const data = await fetch(`${backendUrl}/v1/products`, {
+    method: "POST",
+    body: cartItems,
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+  const response = await data.json();
+  console.info(body, response);
   redirect("/");
   return null;
 }
@@ -42,14 +51,6 @@ export type Product = {
 export const productAtom = atom<Product[]>([]);
 export const cartProductAtom = atomWithStorage<number[]>('cart', []);
 
-export default function Index() {
-  return (
-    <Provider>
-      <Page />
-    </Provider>
-  );
-}
-
 function Page() {
   const loadedProducts = useLoaderData<typeof loader>();
   const setProducts = useSetAtom(productAtom);
@@ -60,5 +61,13 @@ function Page() {
       <ProductList />
       <ShoppingCart />
     </>
+  );
+}
+
+export default function Index() {
+  return (
+    <Provider>
+      <Page />
+    </Provider>
   );
 }
