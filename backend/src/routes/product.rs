@@ -60,30 +60,42 @@ async fn get_products() -> Result<Json<Vec<Product>>, Error> {
     Ok(Json(products))
 }
 
+#[derive(Debug, Serialize)]
+struct Medication {
+    medications: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Message {
+    message: String,
+    interactions: Vec<Vec<String>>,
+}
+
 async fn process_checkout(
     extract::Json(candidates): extract::Json<Vec<i32>>,
 ) -> Result<Json<bool>, Error> {
     let pool = PgPool::connect(&DATABASE_URL).await?;
-    println!("{:?}", candidates);
-    let payload = sqlx::query!(
+    let sql = sqlx::query!(
         "SELECT name FROM PRODUCTS WHERE ID = ANY($1)",
         &candidates[..]
     )
     .fetch_all(&pool)
     .await?;
-    let data: Vec<String> = payload.iter().map(|p| p.name.clone()).collect();
-
-    println!("{:?}", payload);
+    let data: Vec<String> = sql.iter().map(|p| p.name.clone()).collect();
+    let payload = Medication { medications: data };
+    println!("playload: {:?}", payload);
 
     let url = "";
     let token = "";
     let client = reqwest::Client::new();
-    let response = client
+    let response: Message = client
         .post(url)
         .header("X-AUTH-TOKEN", token)
-        .json(&json!({ "medications": &data }))
+        .json(&payload)
         .send()
-        .await;
-    println!("response, {:?}", response);
+        .await?
+        .json()
+        .await?;
+    println!("RESPONSE: {:?}", response);
     Ok(Json(true))
 }

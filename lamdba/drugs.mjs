@@ -8,14 +8,16 @@ const drugInteractions = {
 };
 
 const handler = async (event) => {
-    const medications = event.medications || [];
-    
+    const body = event.body || [];
+    const medications = JSON.parse(body).medications;
+
     const interactions = [];
     for (let i = 0; i < medications.length; i++) {
         const med1 = medications[i];
         const med1Interactions = drugInteractions[med1] || [];
         for (let j = i + 1; j < medications.length; j++) {
             const med2 = medications[j];
+            console.log(med1, med2);
             if (med1Interactions.includes(med2)) {
                 interactions.push([med1, med2]);
             }

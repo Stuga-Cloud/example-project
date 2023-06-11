@@ -23,10 +23,13 @@ pub enum Error {
     RunSyncTask(#[from] JoinError),
 
     #[error("{0}")]
-    RepoError(#[from] RepoError),
+    Repo(#[from] RepoError),
 
     #[error("{0}")]
-    DatabaseError(#[from] sqlx::Error),
+    Database(#[from] sqlx::Error),
+
+    #[error("{0}")]
+    Fetch(#[from] reqwest::Error),
 }
 
 impl Error {
@@ -49,8 +52,9 @@ impl Error {
                 (StatusCode::INTERNAL_SERVER_ERROR, 5001)
             }
             Error::RunSyncTask(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
-            Error::RepoError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
-            Error::DatabaseError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
+            Error::Repo(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
+            Error::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
+            Error::Fetch(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5008),
         }
     }
 
