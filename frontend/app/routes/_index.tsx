@@ -3,8 +3,10 @@ import ShoppingCart from "~/components/cart";
 import { Header } from "~/components/header";
 import { ProductList } from "~/components/product-list";
 import { useLoaderData } from "@remix-run/react";
-import { Provider, atom, useSetAtom } from 'jotai';
+import { Provider, atom, useAtom, useSetAtom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
+import { useState } from "react";
+import ErrorModal from "~/components/error-modal";
 
 export const meta: V2_MetaFunction = () => {
   return [
@@ -50,16 +52,19 @@ export type Product = {
 
 export const productAtom = atom<Product[]>([]);
 export const cartProductAtom = atomWithStorage<number[]>('cart', []);
+export const openModalAtom = atom(false);
 
 function Page() {
   const loadedProducts = useLoaderData<typeof loader>();
   const setProducts = useSetAtom(productAtom);
   setProducts(loadedProducts);
+  const [open, setOpen] = useAtom(openModalAtom);
   return (
     <>
       <Header />
       <ProductList />
       <ShoppingCart />
+      <ErrorModal open={open} setOpen={setOpen} />
     </>
   );
 }

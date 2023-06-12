@@ -7,7 +7,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{self, types::BigDecimal, PgPool};
 
-use crate::{error::Error, utils::serialize_bigdecimal};
+use crate::{
+    error::{Error, InteractionError},
+    utils::serialize_bigdecimal,
+};
 
 pub fn create_route() -> Router {
     Router::new()
@@ -36,7 +39,7 @@ async fn get_products() -> Result<Json<Vec<Product>>, Error> {
 
     let rows = sqlx::query!(
         r#"
-        SELECT id, name, href, price, description, image_src, image_alt
+        SELECT id, name, href, ROUND(price::numeric, 2) AS price, description, image_src, image_alt
         FROM products
         "#,
     )
@@ -50,13 +53,14 @@ async fn get_products() -> Result<Json<Vec<Product>>, Error> {
             id: row.id,
             name: row.name,
             href: row.href,
-            price: row.price,
+            price: row.price.unwrap_or(BigDecimal::from(0)),
             description: row.description,
             image_src: row.image_src,
             image_alt: row.image_alt,
         };
         products.push(product);
     }
+    println!("{:?}", products);
     Ok(Json(products))
 }
 
@@ -67,8 +71,8 @@ struct Medication {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Message {
-    message: String,
-    interactions: Vec<Vec<String>>,
+    pub message: String,
+    pub interactions: Option<Vec<Vec<String>>>,
 }
 
 async fn process_checkout(
@@ -83,7 +87,6 @@ async fn process_checkout(
     .await?;
     let data: Vec<String> = sql.iter().map(|p| p.name.clone()).collect();
     let payload = Medication { medications: data };
-    println!("playload: {:?}", payload);
 
     let url = "";
     let token = "";
@@ -96,6 +99,13 @@ async fn process_checkout(
         .await?
         .json()
         .await?;
-    println!("RESPONSE: {:?}", response);
+    if response.interactions.is_some() {
+        let error = InteractionError {
+            message: response.message,
+            interactions: response.interactions.expect("is interaction"),
+        };
+        println!("{:?}", error);
+        return Err(Error::InteractionError(error));
+    }
     Ok(Json(true))
 }

@@ -25,7 +25,8 @@ export default function ShoppingCart() {
     const formData = new FormData(formRef.current);
     const data = JSON.stringify(cartProductsId);
     formData.set("cart", data);
-    submit(formData, {method: 'post' });
+    const res = submit(formData, {method: 'post' });
+    console.timeLog(res);
   }
 
   return (
@@ -98,7 +99,7 @@ export default function ShoppingCart() {
                                         <h3>
                                           <a href={product.href}>{product.name}</a>
                                         </h3>
-                                        <p className="ml-4">{product.price}</p>
+                                        <p className="ml-4">{product.price.toFixed(2)}</p>
                                       </div>
                                       <p className="mt-1 text-sm text-gray-500">Yellow</p>
                                     </div>

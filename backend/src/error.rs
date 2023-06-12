@@ -30,6 +30,9 @@ pub enum Error {
 
     #[error("{0}")]
     Fetch(#[from] reqwest::Error),
+
+    #[error("{0}")]
+    InteractionError(#[from] InteractionError),
 }
 
 impl Error {
@@ -46,6 +49,7 @@ impl Error {
                 (StatusCode::UNAUTHORIZED, 40005)
             }
             Error::Authenticate(AuthenticateError::Locked) => (StatusCode::LOCKED, 40006),
+            Error::InteractionError(_) => (StatusCode::BAD_REQUEST, 40007),
 
             // 5XX Errors
             Error::Authenticate(AuthenticateError::TokenCreation) => {
@@ -71,7 +75,13 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status_code, code) = self.get_codes();
         let message = self.to_string();
-        let body = Json(json!({ "code": code, "message": message }));
+        let json = match &self {
+            Error::InteractionError(error) => {
+                json!({ "code": code, "message": message, "interactions": error.interactions })
+            }
+            _ => json!({ "code": code, "message": message }),
+        };
+        let body = Json(json);
 
         (status_code, body).into_response()
     }
@@ -101,3 +111,10 @@ pub struct NotFound {}
 #[derive(thiserror::Error, Debug)]
 #[error("Repository error")]
 pub struct RepoError {}
+
+#[derive(thiserror::Error, Debug)]
+#[error("Interaction between medication found")]
+pub struct InteractionError {
+    pub message: String,
+    pub interactions: Vec<Vec<String>>,
+}

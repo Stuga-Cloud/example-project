@@ -13,7 +13,7 @@ impl Settings {
         Self {
             environment: "dev".to_string(),
             log_level: "debug".to_string(),
-            server_port: 8008,
+            server_port: 8080,
         }
     }
 }
