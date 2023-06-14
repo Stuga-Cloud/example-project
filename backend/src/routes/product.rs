@@ -1,11 +1,13 @@
+use std::env;
+
 use axum::{
     extract,
     routing::{get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use sqlx::{self, types::BigDecimal, PgPool};
+use tracing::info;
 
 use crate::{
     error::{Error, InteractionError},
@@ -32,10 +34,9 @@ pub struct Product {
     image_alt: String,
 }
 
-const DATABASE_URL: &str = "postgresql://myuser:mypassword@localhost/mydatabase";
-
 async fn get_products() -> Result<Json<Vec<Product>>, Error> {
-    let pool = PgPool::connect(&DATABASE_URL).await?;
+    let database_url = env::var("DATABASE_URL").unwrap();
+    let pool = PgPool::connect(&database_url).await?;
 
     let rows = sqlx::query!(
         r#"
@@ -78,7 +79,10 @@ struct Message {
 async fn process_checkout(
     extract::Json(candidates): extract::Json<Vec<i32>>,
 ) -> Result<Json<bool>, Error> {
-    let pool = PgPool::connect(&DATABASE_URL).await?;
+    let database_url = env::var("DATABASE_URL").unwrap();
+    let token = env::var("LAMDBA_TOKEN").unwrap();
+    let url = env::var("LAMDBA_URL").unwrap();
+    let pool = PgPool::connect(&database_url).await?;
     let sql = sqlx::query!(
         "SELECT name FROM PRODUCTS WHERE ID = ANY($1)",
         &candidates[..]
@@ -88,8 +92,6 @@ async fn process_checkout(
     let data: Vec<String> = sql.iter().map(|p| p.name.clone()).collect();
     let payload = Medication { medications: data };
 
-    let url = "";
-    let token = "";
     let client = reqwest::Client::new();
     let response: Message = client
         .post(url)
@@ -104,7 +106,7 @@ async fn process_checkout(
             message: response.message,
             interactions: response.interactions.expect("is interaction"),
         };
-        println!("{:?}", error);
+        info!("{:?}", error);
         return Err(Error::InteractionError(error));
     }
     Ok(Json(true))

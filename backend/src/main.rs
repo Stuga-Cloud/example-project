@@ -1,3 +1,7 @@
+extern crate dotenv;
+extern crate dotenv_codegen;
+
+use dotenv::dotenv;
 use std::net::SocketAddr;
 use tracing::info;
 
@@ -12,6 +16,7 @@ mod utils;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     let app = app::create_app().await;
     let address = SocketAddr::from(([127, 0, 0, 1], SETTINGS.server_port));
 
