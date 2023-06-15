@@ -6,7 +6,6 @@ export const ProductList = () => {
   const products = useAtomValue(productAtom);
   const [cart , setCart] =  useAtom(cartProductAtom);
   const addProduct = (productId: number) => {
-    console.log(productId);
     setCart([...cart, productId]);
   };
   return (

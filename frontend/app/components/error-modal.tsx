@@ -1,13 +1,18 @@
-import React, { Fragment, useRef } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment, useRef } from 'react';
 
-export default function ErrorModal({open, setOpen}: {open: boolean, setOpen: React.Dispatch<React.SetStateAction<boolean>>}) {
-  const cancelButtonRef = useRef(null)
+export type Error = {
+  code: number;
+  interactions: Array<Array<string>>;
+  message: string;
+};
+
+export default function ErrorModal({error, setError}: {error: Error | null, setError: React.Dispatch<React.SetStateAction<Error | null>>}) {
+  const cancelButtonRef = useRef(null);
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setOpen}>
+    <Transition.Root show={!!error} as={Fragment}>
+      <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={() => setError(null)}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -34,17 +39,25 @@ export default function ErrorModal({open, setOpen}: {open: boolean, setOpen: Rea
               <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                 <div className="sm:flex sm:items-start">
                   <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <ExclamationTriangleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                      <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                    </svg>
                   </div>
                   <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
                     <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
-                      Deactivate account
+                      Error {error?.code}
                     </Dialog.Title>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500">
-                        Are you sure you want to deactivate your account? All of your data will be permanently removed
-                        from our servers forever. This action cannot be undone.
+                        {error?.message}
                       </p>
+                      {error?.interactions?.length && error?.interactions.length > 0 && (
+                        <ul className="mt-2 text-sm text-gray-500">
+                          {error?.interactions.map((interaction, index) => (
+                            <li key={index}>{interaction.join(", ")}</li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -52,17 +65,9 @@ export default function ErrorModal({open, setOpen}: {open: boolean, setOpen: Rea
                   <button
                     type="button"
                     className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto"
-                    onClick={() => setOpen(false)}
+                    onClick={() => setError(null)}
                   >
-                    Deactivate
-                  </button>
-                  <button
-                    type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-                    onClick={() => setOpen(false)}
-                    ref={cancelButtonRef}
-                  >
-                    Cancel
+                    Close
                   </button>
                 </div>
               </Dialog.Panel>
@@ -73,3 +78,4 @@ export default function ErrorModal({open, setOpen}: {open: boolean, setOpen: Rea
     </Transition.Root>
   )
 }
+

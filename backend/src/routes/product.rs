@@ -80,8 +80,8 @@ async fn process_checkout(
     extract::Json(candidates): extract::Json<Vec<i32>>,
 ) -> Result<Json<bool>, Error> {
     let database_url = env::var("DATABASE_URL").unwrap();
-    let token = env::var("LAMDBA_TOKEN").unwrap();
-    let url = env::var("LAMDBA_URL").unwrap();
+    let token = env::var("LAMBDA_TOKEN").unwrap();
+    let url = env::var("LAMBDA_URL").unwrap();
     let pool = PgPool::connect(&database_url).await?;
     let sql = sqlx::query!(
         "SELECT name FROM PRODUCTS WHERE ID = ANY($1)",

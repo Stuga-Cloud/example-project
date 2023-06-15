@@ -3,14 +3,15 @@ import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useAtom, useAtomValue } from 'jotai'
 import { cartProductAtom, productAtom } from '~/routes/_index'
-import { useSubmit } from '@remix-run/react'
+import { Form, useSubmit } from '@remix-run/react'
+import ErrorModal from './error-modal'
 
-export default function ShoppingCart() {
+export default function ShoppingCart({backendUrl}: {backendUrl: string}) {
   const [open, setOpen] = useState(false)
+  const [errorModal, setErrorModal] = useState(false);
   const [cartProductsId, setCartProductsId] = useAtom(cartProductAtom);
+
   const products = useAtomValue(productAtom);
-  const formRef = useRef<HTMLFormElement>();
-  const submit = useSubmit();
   const cartProducts = products.filter(p => cartProductsId.some(id => p.id === id));
 
   const totalPrice = cartProducts.reduce(
@@ -21,12 +22,20 @@ export default function ShoppingCart() {
     setCartProductsId(cartProductsId.filter(id => id !== productId));
   }
 
-  const checkout = () => {
-    const formData = new FormData(formRef.current);
-    const data = JSON.stringify(cartProductsId);
-    formData.set("cart", data);
-    const res = submit(formData, {method: 'post' });
-    console.timeLog(res);
+  const checkout = async (e: Event) => {
+    e.preventDefault();
+    const data = await fetch(`${backendUrl}/v1/products`, {
+      method: "POST",
+      body: JSON.stringify(cartProductsId),
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+    const response = await data.json();
+    if (data.status !== 200) {
+      setOpen(false);
+      setErrorModal(response);
+    }
   }
 
   return (
@@ -124,7 +133,7 @@ export default function ShoppingCart() {
                         </div>
                       </div>
 
-                      <form  onSubmit={checkout} className="border-t border-gray-200 px-4 py-6 sm:px-6">
+                      <form onSubmit={checkout} className="border-t border-gray-200 px-4 py-6 sm:px-6">
                         <div className="flex justify-between text-base font-medium text-gray-900">
                           <p>Subtotal</p>
                           <p>{totalPrice}</p>
@@ -160,6 +169,7 @@ export default function ShoppingCart() {
           </div>
         </Dialog>
       </Transition.Root>
+      <ErrorModal error={errorModal} setError={setErrorModal} />
     </>
   )
 }
