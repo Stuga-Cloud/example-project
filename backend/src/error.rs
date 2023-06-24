@@ -29,6 +29,9 @@ pub enum Error {
     Database(#[from] sqlx::Error),
 
     #[error("{0}")]
+    ZeroKnowledgeDatabase(#[from] liserk_client::Error),
+
+    #[error("{0}")]
     Fetch(#[from] reqwest::Error),
 
     #[error("{0}")]
@@ -59,6 +62,7 @@ impl Error {
             Error::Repo(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
             Error::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
             Error::Fetch(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5008),
+            Error::ZeroKnowledgeDatabase(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5009),
         }
     }
 
