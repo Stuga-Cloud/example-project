@@ -8,6 +8,7 @@ use tracing::info;
 use crate::settings::SETTINGS;
 
 mod app;
+mod databases;
 mod error;
 mod logger;
 mod routes;
