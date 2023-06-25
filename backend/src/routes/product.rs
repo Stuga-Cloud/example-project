@@ -86,7 +86,7 @@ async fn process_checkout(
     let url = env::var("LAMBDA_URL").unwrap();
     let pool = PgPool::connect(&database_url).await?;
     let sql = sqlx::query!(
-        "SELECT name, price FROM PRODUCTS WHERE ID = ANY($1)",
+        "SELECT name FROM PRODUCTS WHERE ID = ANY($1)",
         &candidates[..]
     )
     .fetch_all(&pool)
@@ -114,35 +114,32 @@ async fn process_checkout(
     Ok(Json(true))
 }
 
-async fn insert_medications() -> Result<(), Error> {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SecureStockProduct {
+    name: String,
+    price: f32,
+    stock: Float,
+}
+
+async fn insert_medications(inserted_medications: Vec<String>) -> Result<(), Error> {
     let username = env::var("ZKD_USERNAME").unwrap();
     let password = env::var("ZKD_PASSWORD").unwrap();
     let db_url = env::var("ZKD_URL").unwrap();
     let client = UnconnectedClient::default();
     let client = client.connect(&db_url).await.unwrap();
     let mut client = client.authenticate(username, password).await.unwrap();
-    // Liste de médicaments avec nom, prix, et quantité en stock
-    let medications = vec![
-        ("Paracetamol", 9.99, 120),
-        ("Ibuprofen", 12.99, 80),
-        ("Cough Syrup", 6.99, 150),
-        ("Antihistamine", 8.99, 90),
-        ("Multivitamin", 14.99, 100),
-        ("Aspirin", 7.99, 130),
-        ("Headache Relief Pills", 9.99, 75),
-        ("Allergy Relief Spray", 12.99, 65),
-        ("Cold & Flu Pack", 19.99, 50),
-    ];
+
+    let medications = match_medications(&inserted_medications);
 
     for (name, price, stock) in medications {
-        let encrypted_stock = client.ope_encrypt(stock); // Ici, on assume que cette méthode existe
+        let encrypted_stock = client.ope_encrypt(stock);
 
-        let data = json!({
-            "name": name,
-            "price": price,
-            "stock": encrypted_stock,
-        }); // TODO use serde CBOR and the warpper of liserk_client
-        let data_bytes = serde_json::to_vec(&data)?;
+        let data = SecureStockProduct {
+            name: name.to_string(),
+            price,
+            stock: encrypted_stock,
+        };
+        let data_bytes = liserk_client::serialize(&data);
 
         let acl = vec!["manager".to_string(), "stock_analyst".to_string()];
         let usecases = vec![
@@ -155,4 +152,24 @@ async fn insert_medications() -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+const MEDICATIONS: [(&str, f32, usize)] = [
+    ("Paracetamol", 9.99, 120),
+    ("Ibuprofen", 12.99, 80),
+    ("Cough Syrup", 6.99, 150),
+    ("Antihistamine", 8.99, 90),
+    ("Multivitamin", 14.99, 100),
+    ("Aspirin", 7.99, 130),
+    ("Headache Relief Pills", 9.99, 75),
+    ("Allergy Relief Spray", 12.99, 65),
+    ("Cold & Flu Pack", 19.99, 50),
+];
+
+fn match_medications(inserted_medications: &Vec<String>) -> Vec<(&str, f64, i32)> {
+    MEDICATIONS
+        .iter()
+        .filter(|(name, _, _)| inserted_medications.contains(&name.to_string()))
+        .cloned()
+        .collect()
 }
