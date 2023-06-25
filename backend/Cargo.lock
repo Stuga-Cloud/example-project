@@ -336,6 +336,7 @@ dependencies = [
  "futures",
  "lazy_static",
  "liserk-client",
+ "liserk-shared",
  "rand",
  "reqwest",
  "serde",

@@ -93,7 +93,9 @@ async fn process_checkout(
     .fetch_all(&pool)
     .await?;
     let data: Vec<String> = sql.iter().map(|p| p.name.clone()).collect();
-    let payload = Medication { medications: data };
+    let payload = Medication {
+        medications: data.clone(),
+    };
 
     let client = reqwest::Client::new();
     let response: Message = client

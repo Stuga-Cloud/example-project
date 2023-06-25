@@ -1,14 +1,10 @@
-const MEDICATIONS: [(&str, f32, usize)] = [
-    ("Paracetamol", 9.99, 120),
-    ("Ibuprofen", 12.99, 80),
-    ("Cough Syrup", 6.99, 150),
-    ("Antihistamine", 8.99, 90),
-    ("Multivitamin", 14.99, 100),
-    ("Aspirin", 7.99, 130),
-    ("Headache Relief Pills", 9.99, 75),
-    ("Allergy Relief Spray", 12.99, 65),
-    ("Cold & Flu Pack", 19.99, 50),
-];
+use std::env;
+
+use liserk_client::stream::{AuthenticatedClient, UnconnectedClient};
+use liserk_shared::query::{CompoundQuery, Query, QueryType, SingleQueryBuilder};
+use serde::{Deserialize, Serialize};
+
+use crate::error::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SecureStockProduct {
@@ -35,7 +31,7 @@ pub async fn insert_medications(inserted_medications: Vec<String>) -> Result<(),
             price,
             stock: encrypted_stock,
         };
-        let data_bytes = liserk_client::serialize(&data);
+        let data_bytes = liserk_client::serialize(&data)?;
 
         let acl = vec!["manager".to_string(), "stock_analyst".to_string()];
         let usecases = vec![
@@ -50,20 +46,31 @@ pub async fn insert_medications(inserted_medications: Vec<String>) -> Result<(),
     Ok(())
 }
 
-fn match_medications(inserted_medications: &Vec<String>) -> Vec<(&str, f64, i32)> {
-    MEDICATIONS
-        .iter()
-        .filter(|(name, _, _)| inserted_medications.contains(&name.to_string()))
-        .cloned()
+fn match_medications(inserted_medications: &Vec<String>) -> Vec<(String, f64, usize)> {
+    let medications: Vec<(String, f64, usize)> = vec![
+        ("Paracetamol".to_owned(), 9.99, 120),
+        ("Ibuprofen".to_owned(), 12.99, 80),
+        ("Cough Syrup".to_owned(), 6.99, 150),
+        ("Antihistamine".to_owned(), 8.99, 90),
+        ("Multivitamin".to_owned(), 14.99, 100),
+        ("Aspirin".to_owned(), 7.99, 130),
+        ("Headache Relief Pills".to_owned(), 9.99, 75),
+        ("Allergy Relief Spray".to_owned(), 12.99, 65),
+        ("Cold & Flu Pack".to_owned(), 19.99, 50),
+    ];
+
+    medications
+        .into_iter()
+        .filter(|(name, _, _)| inserted_medications.contains(name))
         .collect()
 }
 
 pub async fn get_medications_for_inventory_management(
-    db_client: &mut DatabaseClient,
+    db_client: &mut AuthenticatedClient,
 ) -> Result<(), Error> {
     let inventory_query = SingleQueryBuilder::default()
-        .collection("medications")
-        .usecase("inventory_management")
+        .with_collection("medications".to_owned())
+        .with_usecase("inventory_management".to_owned())
         .build();
 
     let inventory_result = db_client.query(Query::Single(inventory_query)).await?;
@@ -76,16 +83,18 @@ pub async fn get_medications_for_inventory_management(
     Ok(())
 }
 
-pub async fn get_medications_with_low_stock(db_client: &mut DatabaseClient) -> Result<(), Error> {
+pub async fn get_medications_with_low_stock(
+    db_client: &mut AuthenticatedClient,
+) -> Result<(), Error> {
     let low_stock_query = SingleQueryBuilder::default()
-        .collection("medications")
-        .usecase("statistical_analysis")
+        .with_collection("medications".to_owned())
+        .with_usecase("statistical_analysis".to_owned())
         .with_encrypted_field_less_than("stock", db_client.ope_encrypt(80))
         .build();
 
     let usecase_query = SingleQueryBuilder::default()
-        .collection("medications")
-        .usecase("inventory_management")
+        .with_collection("medications".to_owned())
+        .with_usecase("inventory_management".to_owned())
         .build();
 
     let compound_query = CompoundQuery {
