@@ -1,7 +1,9 @@
 use std::env;
 
 use liserk_client::stream::{AuthenticatedClient, UnconnectedClient};
+use liserk_ope::simplified_version::encrypt_ope;
 use liserk_shared::query::{CompoundQuery, Query, QueryType, SingleQueryBuilder};
+use rug::Float;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
@@ -9,7 +11,7 @@ use crate::error::Error;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SecureStockProduct {
     name: String,
-    price: f32,
+    price: f64,
     stock: Float,
 }
 
@@ -24,7 +26,7 @@ pub async fn insert_medications(inserted_medications: Vec<String>) -> Result<(),
     let medications = match_medications(&inserted_medications);
 
     for (name, price, stock) in medications {
-        let encrypted_stock = client.ope_encrypt(stock);
+        let encrypted_stock = encrypt_ope(stock);
 
         let data = SecureStockProduct {
             name: name.to_string(),
@@ -46,17 +48,17 @@ pub async fn insert_medications(inserted_medications: Vec<String>) -> Result<(),
     Ok(())
 }
 
-fn match_medications(inserted_medications: &Vec<String>) -> Vec<(String, f64, usize)> {
-    let medications: Vec<(String, f64, usize)> = vec![
-        ("Paracetamol".to_owned(), 9.99, 120),
-        ("Ibuprofen".to_owned(), 12.99, 80),
-        ("Cough Syrup".to_owned(), 6.99, 150),
-        ("Antihistamine".to_owned(), 8.99, 90),
-        ("Multivitamin".to_owned(), 14.99, 100),
-        ("Aspirin".to_owned(), 7.99, 130),
-        ("Headache Relief Pills".to_owned(), 9.99, 75),
-        ("Allergy Relief Spray".to_owned(), 12.99, 65),
-        ("Cold & Flu Pack".to_owned(), 19.99, 50),
+fn match_medications(inserted_medications: &Vec<String>) -> Vec<(String, f64, f64)> {
+    let medications: Vec<(String, f64, f64)> = vec![
+        ("Paracetamol".to_owned(), 9.99, 120.0),
+        ("Ibuprofen".to_owned(), 12.99, 80.0),
+        ("Cough Syrup".to_owned(), 6.99, 150.0),
+        ("Antihistamine".to_owned(), 8.99, 90.0),
+        ("Multivitamin".to_owned(), 14.99, 100.0),
+        ("Aspirin".to_owned(), 7.99, 130.0),
+        ("Headache Relief Pills".to_owned(), 9.99, 75.0),
+        ("Allergy Relief Spray".to_owned(), 12.99, 65.0),
+        ("Cold & Flu Pack".to_owned(), 19.99, 50.0),
     ];
 
     medications
@@ -89,7 +91,7 @@ pub async fn get_medications_with_low_stock(
     let low_stock_query = SingleQueryBuilder::default()
         .with_collection("medications".to_owned())
         .with_usecase("statistical_analysis".to_owned())
-        .with_encrypted_field_less_than("stock", db_client.ope_encrypt(80))
+        .with_encrypted_field_less_than("stock", encrypt_ope(80))
         .build();
 
     let usecase_query = SingleQueryBuilder::default()
