@@ -5,9 +5,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use liserk_client::UnconnectedClient;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use sqlx::{self, types::BigDecimal, PgPool};
 use tracing::info;
 
