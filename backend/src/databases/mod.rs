@@ -1,6 +1,9 @@
 use std::env;
 
-use liserk_client::stream::{AuthenticatedClient, UnconnectedClient};
+use liserk_client::{
+    generate_key,
+    stream::{AuthenticatedClient, UnconnectedClient},
+};
 use liserk_shared::query::{CompoundQuery, Query, QueryType, SingleQueryBuilder};
 use serde::{Deserialize, Serialize};
 
@@ -14,12 +17,14 @@ pub struct SecureStockProduct {
 }
 
 pub async fn insert_medications(inserted_medications: Vec<String>) -> Result<(), Error> {
+    let key = generate_key();
+    println!("key: {}", key);
     let username = env::var("ZKD_USERNAME").unwrap();
     let password = env::var("ZKD_PASSWORD").unwrap();
     let db_url = env::var("ZKD_URL").unwrap();
     let client = UnconnectedClient::default();
     let client = client.connect(&db_url).await.unwrap();
-    let mut client = client.authenticate(username, password).await.unwrap();
+    let mut client = client.authenticate(username, password, key).await.unwrap();
 
     let medications = match_medications(&inserted_medications);
 
