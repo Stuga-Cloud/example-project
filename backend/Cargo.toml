@@ -31,7 +31,7 @@ bigdecimal = { version = "0.3.1", features = ["serde"] }
 reqwest = { version = "0.11.18", features = [ "json" ] }
 dotenv = "0.15.0"
 dotenv_codegen = "0.15.0"
-liserk-client = "0.2"
+liserk-client = "0.2.3"
 liserk-shared = "0.1"
 rug = { version = "1.19.2", features = ["serde"] }
-liserk-ope = "0.1"
+liserk-ope = "0.2"

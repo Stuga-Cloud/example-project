@@ -1,10 +1,12 @@
 use std::env;
 
 use liserk_client::{
-    generate_key,
+    basic_decrypt, deserialize, generate_key, load_key_from_file, save_key_to_file,
+    stream::QueryResult,
     stream::{AuthenticatedClient, UnconnectedClient},
 };
 use liserk_shared::query::{CompoundQuery, Query, QueryType, SingleQueryBuilder};
+use rand::RngCore;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
@@ -16,15 +18,25 @@ pub struct SecureStockProduct {
     stock: f64,
 }
 
+pub fn get_key() -> [u8; 32] {
+    let path = env::var("KEY_PATH").expect("KEY_PATH env var exist");
+    let key = load_key_from_file(&path);
+    if key.is_err() {
+        let key = generate_key();
+        let _ = save_key_to_file(&key, &path);
+        return key;
+    }
+    key.expect("checked before")
+}
+
 pub async fn insert_medications(inserted_medications: Vec<String>) -> Result<(), Error> {
     let key = generate_key();
-    println!("key: {}", key);
-    let username = env::var("ZKD_USERNAME").unwrap();
-    let password = env::var("ZKD_PASSWORD").unwrap();
-    let db_url = env::var("ZKD_URL").unwrap();
+    let username = env::var("ZKD_USERNAME")?;
+    let password = env::var("ZKD_PASSWORD")?;
+    let db_url = env::var("ZKD_URL")?;
     let client = UnconnectedClient::default();
-    let client = client.connect(&db_url).await.unwrap();
-    let mut client = client.authenticate(username, password, key).await.unwrap();
+    let client = client.connect(&db_url).await?;
+    let mut client = client.authenticate(username, password, key).await?;
 
     let medications = match_medications(&inserted_medications);
 
@@ -45,12 +57,29 @@ pub async fn insert_medications(inserted_medications: Vec<String>) -> Result<(),
         let ope_collection = "medication:stock:ope".to_string();
 
         client
-            .insert(collection, data_bytes, acl.clone(), usecases.clone())
+            .insert(
+                collection,
+                data_bytes,
+                Vec::new(),
+                acl.clone(),
+                usecases.clone(),
+            )
             .await?;
-        client.insert_ope(stock, acl, usecases, ope_collection);
+        client
+            .insert_ope(stock, acl, usecases, ope_collection)
+            .await?;
     }
+    client.terminate_connection().await?;
 
     Ok(())
+}
+
+#[inline]
+#[allow(dead_code)]
+fn generate_nonce() -> [u8; 12] {
+    let mut nonce = [0u8; 12];
+    rand::thread_rng().fill_bytes(&mut nonce);
+    nonce
 }
 
 fn match_medications(inserted_medications: &Vec<String>) -> Vec<(String, f64, f64)> {
@@ -82,14 +111,17 @@ pub async fn get_medications_for_inventory_management(
 
     let inventory_result = db_client.query(Query::Single(inventory_query)).await?;
 
-    let medications = Vec::new();
-    // for item in inventory_result.data {
-    //     if let Ok(medication) = from_slice::<SecureStockProduct>(&item) {
-    //         medications.push(medication);
-    //     }
-    // }
-
-    Ok(medications)
+    match inventory_result {
+        QueryResult::EmptyResult => Ok(Vec::new()),
+        QueryResult::SingleValue(value) => Ok(vec![deserialize(&value)?]),
+        QueryResult::MultipleValues(values) => {
+            let results: Result<Vec<SecureStockProduct>, Error> = values
+                .iter()
+                .map(|x| deserialize(x).map_err(Error::ZeroKnowledgeDatabase))
+                .collect();
+            results
+        }
+    }
 }
 
 pub async fn get_medications_with_low_stock(

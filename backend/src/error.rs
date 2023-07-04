@@ -1,3 +1,5 @@
+use std::env::VarError;
+
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
@@ -9,6 +11,9 @@ use tokio::task::JoinError;
 pub enum Error {
     #[error("{0}")]
     ParseUuid(String),
+
+    #[error("{0}")]
+    VarEnv(#[from] VarError),
 
     #[error("{0}")]
     Authenticate(#[from] AuthenticateError),
@@ -29,7 +34,7 @@ pub enum Error {
     Database(#[from] sqlx::Error),
 
     #[error("{0}")]
-    ZeroKnowledgeDatabase(#[from] liserk_client::Error),
+    ZeroKnowledgeDatabase(#[from] liserk_client::error::Error),
 
     #[error("{0}")]
     Fetch(#[from] reqwest::Error),
@@ -55,6 +60,7 @@ impl Error {
             Error::InteractionError(_) => (StatusCode::BAD_REQUEST, 40007),
 
             // 5XX Errors
+            Error::VarEnv(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5010),
             Error::Authenticate(AuthenticateError::TokenCreation) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, 5001)
             }

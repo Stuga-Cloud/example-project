@@ -10,9 +10,9 @@ use sqlx::{self, types::BigDecimal, PgPool};
 use tracing::info;
 
 use crate::{
-    databases,
     error::{Error, InteractionError},
     utils::serialize_bigdecimal,
+    DatabaseCommand, TX,
 };
 
 pub fn create_route() -> Router {
@@ -80,9 +80,9 @@ struct Message {
 async fn process_checkout(
     extract::Json(candidates): extract::Json<Vec<i32>>,
 ) -> Result<Json<bool>, Error> {
-    let database_url = env::var("DATABASE_URL").unwrap();
-    let token = env::var("LAMBDA_TOKEN").unwrap();
-    let url = env::var("LAMBDA_URL").unwrap();
+    let database_url = env::var("DATABASE_URL")?;
+    let token = env::var("LAMBDA_TOKEN")?;
+    let url = env::var("LAMBDA_URL")?;
     let pool = PgPool::connect(&database_url).await?;
     let sql = sqlx::query!(
         "SELECT name FROM PRODUCTS WHERE ID = ANY($1)",
@@ -113,7 +113,8 @@ async fn process_checkout(
         return Err(Error::InteractionError(error));
     }
 
-    databases::insert_medications(data);
+    let tx = TX.lock().unwrap();
+    let _ = tx.send(DatabaseCommand::Insert(data));
 
     Ok(Json(true))
 }
