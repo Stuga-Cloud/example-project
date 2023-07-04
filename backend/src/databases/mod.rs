@@ -1,7 +1,7 @@
 use std::env;
 
 use liserk_client::{
-    basic_decrypt, deserialize, generate_key, load_key_from_file, save_key_to_file,
+    deserialize, generate_key, load_key_from_file, save_key_to_file,
     stream::QueryResult,
     stream::{AuthenticatedClient, UnconnectedClient},
 };
@@ -29,8 +29,22 @@ pub fn get_key() -> [u8; 32] {
     key.expect("checked before")
 }
 
+fn map_result_to_vec(query_result: QueryResult) -> Result<Vec<SecureStockProduct>, Error> {
+    match query_result {
+        QueryResult::EmptyResult => Ok(Vec::new()),
+        QueryResult::SingleValue(value) => Ok(vec![deserialize(&value)?]),
+        QueryResult::MultipleValues(values) => {
+            let results: Result<Vec<SecureStockProduct>, Error> = values
+                .iter()
+                .map(|x| deserialize(x).map_err(Error::ZeroKnowledgeDatabase))
+                .collect();
+            results
+        }
+    }
+}
+
 pub async fn insert_medications(inserted_medications: Vec<String>) -> Result<(), Error> {
-    let key = generate_key();
+    let key = get_key();
     let username = env::var("ZKD_USERNAME")?;
     let password = env::var("ZKD_PASSWORD")?;
     let db_url = env::var("ZKD_URL")?;
@@ -111,17 +125,7 @@ pub async fn get_medications_for_inventory_management(
 
     let inventory_result = db_client.query(Query::Single(inventory_query)).await?;
 
-    match inventory_result {
-        QueryResult::EmptyResult => Ok(Vec::new()),
-        QueryResult::SingleValue(value) => Ok(vec![deserialize(&value)?]),
-        QueryResult::MultipleValues(values) => {
-            let results: Result<Vec<SecureStockProduct>, Error> = values
-                .iter()
-                .map(|x| deserialize(x).map_err(Error::ZeroKnowledgeDatabase))
-                .collect();
-            results
-        }
-    }
+    map_result_to_vec(inventory_result)
 }
 
 pub async fn get_medications_with_low_stock(
@@ -145,13 +149,5 @@ pub async fn get_medications_with_low_stock(
 
     let low_stock_result = db_client.query(Query::Compound(compound_query)).await?;
 
-    let medications = Vec::new();
-    // for item in low_stock_result.data {
-    //     if let Ok(medication) = from_slice::<SecureStockProduct>(&item) {
-    //         medications.push(medication);
-    //     }
-    // }
-    // TODO use desierialize to get the data and basic decrypt
-
-    Ok(medications)
+    map_result_to_vec(low_stock_result)
 }
