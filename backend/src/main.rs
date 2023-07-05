@@ -4,7 +4,7 @@ extern crate dotenv_codegen;
 use crate::settings::SETTINGS;
 use dotenv::dotenv;
 use lazy_static::lazy_static;
-use routes::stats::query_stats;
+use routes::stats::{query_stats, StatsResult};
 use std::{
     net::SocketAddr,
     sync::{
@@ -26,7 +26,7 @@ mod utils;
 #[derive(Debug, Clone)]
 pub enum DatabaseCommand {
     Insert(Vec<String>),
-    Query,
+    Query(mpsc::Sender<StatsResult>),
 }
 
 lazy_static! {
@@ -61,7 +61,7 @@ fn listen_channel(rx: Receiver<DatabaseCommand>) {
 
         let result = match command {
             DatabaseCommand::Insert(data) => rt.block_on(databases::insert_medications(data)),
-            DatabaseCommand::Query => rt.block_on(query_stats()),
+            DatabaseCommand::Query(tx) => rt.block_on(query_stats(tx)),
         };
         if result.is_err() {
             error!("error with database {:?}", result);
