@@ -5,9 +5,12 @@ use liserk_client::{
     stream::QueryResult,
     stream::{AuthenticatedClient, UnconnectedClient},
 };
-use liserk_shared::query::{CompoundQuery, Query, QueryType, SingleQueryBuilder};
+use liserk_shared::query::{
+    CompoundQuery, CompoundQueryBuilder, Query, QueryType, SingleQuery, SingleQueryBuilder,
+};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, PgPool};
 
 use crate::error::Error;
 
@@ -150,4 +153,88 @@ pub async fn get_medications_with_low_stock(
     let low_stock_result = db_client.query(Query::Compound(compound_query)).await?;
 
     map_result_to_vec(low_stock_result)
+}
+
+pub async fn get_medications_with_low_stock_near_location(
+    db_client: &mut AuthenticatedClient,
+    latitude: f64,
+    longitude: f64,
+) -> Result<Vec<SecureStockProduct>, Error> {
+    let nearest_warehouse_id = get_nearest_warehouse_id(db_client, latitude, longitude).await?;
+
+    let low_stock_query = SingleQueryBuilder::default()
+        .with_collection("medication:stock:ope".to_owned())
+        .with_usecase("statistical_analysis".to_owned())
+        .with_encrypted_field_less_than(80.0)
+        .build();
+
+    // TODO
+    let warehouse_query = Query::GetById {
+        id: nearest_warehouse_id.to_string(),
+        collection: "stock".to_owned(),
+    };
+
+    let compound_query = CompoundQueryBuilder::default()
+        .with_query_type(QueryType::And)
+        .with_query(warehouse_query)
+        .with_query(Query::Single(low_stock_query))
+        .build();
+
+    let low_stock_result = db_client.query(Query::Compound(compound_query)).await?;
+
+    map_result_to_vec(low_stock_result)
+}
+
+#[derive(Debug, FromRow)]
+pub struct Warehouse {
+    pub id: i32,
+    pub name: String,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+async fn get_nearest_warehouse_id(
+    db_client: &mut AuthenticatedClient,
+    latitude: f64,
+    longitude: f64,
+) -> Result<i32, Error> {
+    let database_url = env::var("DATABASE_URL")?;
+    let pool = PgPool::connect(&database_url).await?;
+    let warehouses_query = "
+        SELECT id, latitude, longitude
+        FROM warehouses
+    ";
+
+    let warehouses: Vec<Warehouse> = sqlx::query_as(warehouses_query).fetch_all(&pool).await?;
+
+    let mut nearest_warehouse_id = 0;
+    let mut min_distance = f64::MAX;
+
+    for warehouse in warehouses {
+        let distance =
+            haversine_distance(latitude, longitude, warehouse.latitude, warehouse.longitude);
+        if distance < min_distance {
+            min_distance = distance;
+            nearest_warehouse_id = warehouse.id;
+        }
+    }
+
+    Ok(nearest_warehouse_id)
+}
+
+fn haversine_distance(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
+    let earth_radius_km = 6371.0;
+
+    let dlat = (lat2 - lat1).to_radians();
+    let dlon = (lon2 - lon1).to_radians();
+
+    let a = (dlat / 2.0).sin() * (dlat / 2.0).sin()
+        + lat1.to_radians().cos()
+            * lat2.to_radians().cos()
+            * (dlon / 2.0).sin()
+            * (dlon / 2.0).sin();
+
+    let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
+
+    earth_radius_km * c
 }

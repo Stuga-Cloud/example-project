@@ -34,6 +34,11 @@ struct Stats {
 pub struct StatsResult {
     low_stock: Vec<SecureStockProduct>,
     invertory: Vec<SecureStockProduct>,
+    nearest_warehouse_stock: Vec<SecureStockProduct>,
+}
+struct Coordinates {
+    latitude: f64,
+    longitude: f64,
 }
 
 pub async fn query_stats(tx: mpsc::Sender<StatsResult>) -> Result<(), Error> {
@@ -43,12 +48,25 @@ pub async fn query_stats(tx: mpsc::Sender<StatsResult>) -> Result<(), Error> {
     let db_url = env::var("ZKD_URL")?;
     let client = UnconnectedClient::default();
     let client = client.connect(&db_url).await?;
+
+    let paris = Coordinates {
+        latitude: 48.8566,
+        longitude: 2.3522,
+    };
+
     let mut client = client.authenticate(username, password, key).await?;
     let low_stock = databases::get_medications_with_low_stock(&mut client).await?;
     let invertory = databases::get_medications_for_inventory_management(&mut client).await?;
+    let nearest_warehouse_stock = databases::get_medications_with_low_stock_near_location(
+        &mut client,
+        paris.latitude,
+        paris.longitude,
+    )
+    .await?;
     let result = StatsResult {
         low_stock,
         invertory,
+        nearest_warehouse_stock,
     };
     let _ = tx.send(result);
     Ok(())
