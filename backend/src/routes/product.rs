@@ -82,7 +82,7 @@ async fn process_checkout(
     let client = reqwest::Client::new();
     let response: Message = client
         .post(url)
-        .header("X-AUTH-TOKEN", token)
+        .header("X-Gravitee-Api-Key", token)
         .json(&payload)
         .send()
         .await?
