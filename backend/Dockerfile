@@ -2,6 +2,8 @@ FROM rust:1.70 as builder
 
 WORKDIR /app
 
+ARG DATABASE_URL
+
 COPY Cargo.toml Cargo.lock ./
 
 COPY src ./src

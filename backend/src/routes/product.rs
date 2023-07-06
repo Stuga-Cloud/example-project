@@ -21,7 +21,7 @@ pub fn create_route() -> Router {
         .route("/products", post(process_checkout))
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, sqlx::FromRow)]
 pub struct Product {
     id: i32,
     name: String,
@@ -39,7 +39,7 @@ async fn get_products() -> Result<Json<Vec<Product>>, Error> {
     let database_url = env::var("DATABASE_URL").unwrap();
     let pool = PgPool::connect(&database_url).await?;
 
-    let rows = sqlx::query!(
+    let products: Vec<Product> = sqlx::query_as(
         r#"
         SELECT id, name, href, ROUND(price::numeric, 2) AS price, description, image_src, image_alt
         FROM products
@@ -48,20 +48,6 @@ async fn get_products() -> Result<Json<Vec<Product>>, Error> {
     .fetch_all(&pool)
     .await?;
 
-    let mut products: Vec<Product> = Vec::new();
-
-    for row in rows {
-        let product = Product {
-            id: row.id,
-            name: row.name,
-            href: row.href,
-            price: row.price.unwrap_or(BigDecimal::from(0)),
-            description: row.description,
-            image_src: row.image_src,
-            image_alt: row.image_alt,
-        };
-        products.push(product);
-    }
     println!("{:?}", products);
     Ok(Json(products))
 }
@@ -84,13 +70,11 @@ async fn process_checkout(
     let token = env::var("LAMBDA_TOKEN")?;
     let url = env::var("LAMBDA_URL")?;
     let pool = PgPool::connect(&database_url).await?;
-    let sql = sqlx::query!(
-        "SELECT name FROM PRODUCTS WHERE ID = ANY($1)",
-        &candidates[..]
-    )
-    .fetch_all(&pool)
-    .await?;
-    let data: Vec<String> = sql.iter().map(|p| p.name.clone()).collect();
+    let sql = sqlx::query_as::<_, (String,)>("SELECT name FROM PRODUCTS WHERE ID = ANY($1)")
+        .bind(&candidates)
+        .fetch_all(&pool)
+        .await?;
+    let data: Vec<String> = sql.iter().map(|p| p.0.clone()).collect();
     let payload = Medication {
         medications: data.clone(),
     };
