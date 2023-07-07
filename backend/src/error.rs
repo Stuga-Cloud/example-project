@@ -126,5 +126,5 @@ pub struct RepoError {}
 #[error("Interaction between medication found")]
 pub struct InteractionError {
     pub message: String,
-    pub interactions: Vec<Vec<String>>,
+    pub interactions: Vec<String>,
 }

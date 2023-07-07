@@ -2,10 +2,13 @@ use std::env;
 
 use axum::{
     extract,
+    http::HeaderMap,
     routing::{get, post},
     Json, Router,
 };
+use reqwest::header::CONTENT_TYPE;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::{self, types::BigDecimal, PgPool};
 use tracing::info;
 
@@ -65,7 +68,12 @@ struct LamdbaArg {
 #[derive(Debug, Serialize, Deserialize)]
 struct Message {
     pub message: String,
-    pub interactions: Option<Vec<Vec<String>>>,
+    pub interactions: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Body {
+    body: Message,
 }
 
 async fn process_checkout(
@@ -80,21 +88,28 @@ async fn process_checkout(
         .fetch_all(&pool)
         .await?;
     let data: Vec<String> = sql.iter().map(|p| p.0.clone()).collect();
-    let payload = Medication {
-        lambda_arg: LamdbaArg {
-            medications: data.clone(),
-        },
-    };
+
+    let payload = json!({
+        "lambda_arg": {
+            "medications": data.clone()
+        }
+    });
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
+    headers.insert("X-Gravitee-Api-Key", token.parse().unwrap());
+
     let client = reqwest::Client::new();
-    let json_body = &serde_json::json!(&payload).to_string();
-    let response: Message = client
+    let res = client
         .post(url)
-        .header("X-Gravitee-Api-Key", token)
-        .json(json_body)
+        .headers(headers)
+        .json(&payload)
         .send()
-        .await?
-        .json()
         .await?;
+
+    let body: Body = res.json().await?;
+    let response = body.body;
+
     if response.interactions.is_some() {
         let error = InteractionError {
             message: response.message,

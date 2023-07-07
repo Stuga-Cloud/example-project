@@ -54,7 +54,7 @@ export default function ErrorModal({error, setError}: {error: Error | null, setE
                       {error?.interactions?.length && error?.interactions.length > 0 && (
                         <ul className="mt-2 text-sm text-gray-500">
                           {error?.interactions.map((interaction, index) => (
-                            <li key={index}>{interaction.join(", ")}</li>
+                            <li key={index}>{interaction}</li>
                           ))}
                         </ul>
                       )}
