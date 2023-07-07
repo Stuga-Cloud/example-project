@@ -1,5 +1,9 @@
 use std::env;
 
+use tracing_subscriber::fmt;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+
 use crate::SETTINGS;
 
 pub fn setup() {
@@ -9,6 +13,7 @@ pub fn setup() {
 
         env::set_var("RUST_LOG", env);
     }
-
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_writer(std::io::stdout))
+        .init();
 }
