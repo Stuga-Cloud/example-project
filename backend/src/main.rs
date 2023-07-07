@@ -45,7 +45,7 @@ lazy_static! {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    let address = SocketAddr::from(([127, 0, 0, 1], SETTINGS.server_port));
+    let address = SocketAddr::from(([0, 0, 0, 0], SETTINGS.server_port));
     let app = app::create_app().await;
 
     info!("Server listening on {}", &address);
