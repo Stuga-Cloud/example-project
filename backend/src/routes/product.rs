@@ -54,6 +54,11 @@ async fn get_products() -> Result<Json<Vec<Product>>, Error> {
 
 #[derive(Debug, Serialize)]
 struct Medication {
+    lambda_arg: LamdbaArg,
+}
+
+#[derive(Debug, Serialize)]
+struct LamdbaArg {
     medications: Vec<String>,
 }
 
@@ -76,14 +81,16 @@ async fn process_checkout(
         .await?;
     let data: Vec<String> = sql.iter().map(|p| p.0.clone()).collect();
     let payload = Medication {
-        medications: data.clone(),
+        lambda_arg: LamdbaArg {
+            medications: data.clone(),
+        },
     };
-
     let client = reqwest::Client::new();
+    let json_body = &serde_json::json!(&payload).to_string();
     let response: Message = client
         .post(url)
         .header("X-Gravitee-Api-Key", token)
-        .json(&payload)
+        .json(json_body)
         .send()
         .await?
         .json()
