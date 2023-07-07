@@ -20,6 +20,6 @@ COPY --from=builder /app/target/release/backend /usr/local/bin/
 
 WORKDIR /usr/local/bin
 
-EXPOSE 8080
+EXPOSE 9000
 
 CMD ["./backend"]
